@@ -1,0 +1,4 @@
+- Make data CSVs for ERCOT data
+- Run script in FORCE use cases to get NYISO data CSVs
+- Test the read & fit function
+- Determine best way to generate an arbitrary number of samples
