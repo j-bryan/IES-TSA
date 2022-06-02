@@ -1,0 +1,2 @@
+python write_train_xmls.py /x/IES-TSA/data/ERCOT_2021/
+# /x/raven/raven_framework /x/IES-TSA/data/ERCOT_2021/train_L24_K1_P1_Q0.xml
