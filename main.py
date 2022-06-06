@@ -1,13 +1,15 @@
-import pandas as pd
 import argparse
 import dill as pickle
 import itertools
+import numpy as np
+import pandas as pd
 
 from tsmodel import TSModel
 from model_fit import write_train_xml, fit_arma_rom
 from model_eval import evaluate_model, StatEnsemble
 
 import matplotlib.pyplot as plt
+from matplotlib import cm
 
 # scipy.stats.ks_2samp(): two-sample Kolmogorov-Smirnov test
 # statsmodels.stats.diagnostic.het_breushpagan(): Breush-Pagan test for heteroskedasticity
@@ -22,13 +24,13 @@ def product_dict(**kwargs):
 
 
 def main(working_dir):
-    P = [1]
-    Q = [0]
-    L = [24]  # segment lengths
-    K = [2]  # number of clusters; skip k if there would be fewer than 10 segments per cluster on average
-    # L = [24, 146, 365, 730, 2190]  # segment lengths
-    # K = [2, 4, 8, 16, 32]  # number of clusters; skip k if there would be fewer than 10 segments per cluster on average
-    preserveCDF = ['True']
+    P = [1, 2, 3]
+    Q = [0, 1, 2, 3]
+    # L = [24]  # segment lengths
+    # K = [2]  # number of clusters; skip k if there would be fewer than 10 segments per cluster on average
+    L = [24, 146, 365, 730, 2190]  # segment lengths
+    K = [2, 4, 8, 16, 32]  # number of clusters; skip k if there would be fewer than 10 segments per cluster on average
+    preserveCDF = ['True', 'False']
 
     model_params = {'WorkingDir': [('', working_dir)],  # node name: (attribute name, value to set); attribute name '' indicates that it's a node text value
                     'P': [('', str(p)) for p in P],
@@ -59,14 +61,6 @@ def main(working_dir):
         pickle.dump(ens, f)
 
 
-def old_results():
-    with open('ensemble.pk', 'rb') as f:
-        ens = pickle.load(f)
-    
-    print(ens.fetch_all())
-    plt.show()
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -74,5 +68,4 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
     
-    # old_results()
     main(args.DIR)
