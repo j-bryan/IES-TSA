@@ -3,3 +3,6 @@ all_stats.csv
 ensemble.pk
 todo
 run_analysis
+__pycache__
+tsmodel/__pycache__
+tests/__pycache__
