@@ -1,5 +1,5 @@
 from statsmodels.tsa.arima.model import ARIMA as arima
-from models.base import TimeSeriesBase
+from tsmodel.models.base import TimeSeriesBase
 
 
 class ARIMA(TimeSeriesBase):

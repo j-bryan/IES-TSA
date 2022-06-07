@@ -1,4 +1,4 @@
-from models.base import TimeSeriesBase
+from tsmodel.models.base import TimeSeriesBase
 from sklearn.base import TransformerMixin
 
 
