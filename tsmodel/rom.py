@@ -18,6 +18,8 @@ class ROM:
         self._preprocessor = preprocessor  # gets you from input data to model and back
         self._postprocessor = postprocessor  # applies extra transformations when coming back through the pipeline
         self._model = model  # time series model
+        self._fit_model = None
+        self._input_shape = None
 
         # TODO: add ability to detect segmentation and clustering, detecting when multiple pipelines should be built
         ## Have two base classes: TransformerBase, SegmentedTransformerBase
@@ -27,28 +29,15 @@ class ROM:
         ## 
 
     def fit(self, X):
-        Xt = self._preprocessor.fit_transform(X)
-        print('fit preprocessor')
-        fit_res = self._model.fit(Xt)
-        print('fit model')
+        self._input_shape = X.shape
+        Xt = self._preprocessor.fit_transform(X)            
+        self._fit_model = fit_res = self._model.fit(Xt)
         if self._postprocessor:
             self._postprocessor.fit(X)
-            print('fit postprocessor')
-        return fit_res
     
     def simulate(self, **sim_params):
-        Xst = self._model.simulate(**sim_params)
+        Xst = self._fit_model.simulate(**sim_params).reshape(self._input_shape)
         Xs = self._preprocessor.inverse_transform(Xst)
         if self._postprocessor:
             Xs = self._postprocessor.transform(Xs)
         return Xs
-
-
-class ROMTree:
-    """
-    Uses a tree structure to form arbitrary data pre- and post-processing, modeling, and evaluation workflows.
-    Operations (transformers, segmentation, clustering, models, etc.) comprise the nodes. Nodes are connected
-    bidirectionally for operations which must fetch 
-    """
-    def __init__(self):
-        pass

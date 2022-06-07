@@ -11,16 +11,30 @@ class FourierDetrendBase(BaseEstimator, TransformerMixin):
         raise NotImplementedError
 
     def transform(self, X, y=None):
-        return X - self._F
+        if isinstance(self._F, list):
+            return [X[i] - self._F[i] for i in range(len(X))]
+        else:
+            return X - self._F
 
     def inverse_transform(self, Xt, y=None):
-        return Xt + self._F
+        if isinstance(self._F, list):
+            return [Xt[i] + self._F[i] for i in range(len(Xt))]
+        else:
+            return Xt + self._F
+    
+    def _fourier_segmented(self, x, c, k):
+        xhats = []
+        for i, x_seg in enumerate(x):
+            xhats.append(self._fourier_lstsq(x_seg, c, k))
+        return xhats
 
-    @staticmethod
-    def _fourier_lstsq(x, c, k):
+    def _fourier_lstsq(self, x, c, k):
         """ Fits a given set of Fourier modes given by c and k to the signal x """
-        t = np.arange(x.size)
-
+        if isinstance(x, list) or x.ndim == 3:
+            return self._fourier_segmented(x, c, k)
+        
+        t = np.arange(len(x))
+        
         P = np.zeros((len(c), k))  # periods are all (c_i / f_j)
         for i, ci in enumerate(c):
             for j in range(k):
@@ -42,7 +56,7 @@ class FFTDetrend(FourierDetrendBase):
         self._nfreq = nfreq
 
     def fit(self, X, y=None):
-        f, Pxx = periodogram(X.ravel())
+        f, Pxx = periodogram(X.ravel())  # TODO: won't work well for all input shapes
         inds = np.argpartition(Pxx, -self._nfreq)[-self._nfreq:]
         self._F = self._fourier_lstsq(X, 1/f[inds], 1).reshape(-1, 1)
         return self

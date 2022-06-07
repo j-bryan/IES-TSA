@@ -53,13 +53,13 @@ class KDENormalizer(BaseEstimator, TransformerMixin):
     def transform(self, X, y=None, **kwargs):
         if self.cdf is None:
             self.fit(X.ravel(), y)
-        X_norm = norm.ppf(self.cdf(X.ravel()))
+        X_norm = norm.ppf(self.cdf(X.ravel()))  # TODO: fix for other input shapes
         return X_norm.reshape(-1, 1)
 
     def inverse_transform(self, X, y=None, **kwargs):
         if self.icdf is None:
             self.fit(X.ravel(), y)
-        X_origdist = self.icdf(norm.cdf(X.ravel()))
+        X_origdist = self.icdf(norm.cdf(X.ravel()))  # TODO: fix for other input shapes
         return X_origdist.reshape(-1, 1)
 
     def _cdf_approx(self, X):
@@ -107,3 +107,12 @@ class KDENormalizer(BaseEstimator, TransformerMixin):
         x = np.linspace(0, 1, len(self.kde.density))
         icdf = PchipInterpolator(x, self.kde.icdf)
         return icdf
+
+
+class CDFPreserve(KDENormalizer):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def transform(self, X):
+        ecdf = ECDF(X.ravel())
+        return self.icdf(ecdf(X.ravel())).reshape(-1, 1)  # TODO: needs to work for all input shapes

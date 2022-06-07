@@ -1,5 +1,3 @@
-import warnings
-from collections.abc import Iterable
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 
@@ -9,10 +7,10 @@ class Segmenter(BaseEstimator, TransformerMixin):
         if pivot_length is None and seg_lens is None:
             raise ValueError('Either pivot_length or seg_lens must be specified!')
         
-        if pivot_length:
+        if pivot_length is not None:
             self._pivot_length = pivot_length
             self._seg_lens = []
-        elif seg_lens:
+        elif seg_lens is not None:
             self._seg_lens = seg_lens
             self._pivot_length = None  # value won't actually be used if seg_lens is already defined
         else:
@@ -38,7 +36,6 @@ class Segmenter(BaseEstimator, TransformerMixin):
         ##   X.shape = (n,)    -->  X_seg.shape = (n_segments, pivot_length)
         ##   X.shape = (n, 1)  -->  X_seg.shape = (n_segments, pivot_length, 1)
         ##   X.shape = (n, m)  -->  X_seg.shape = (n_segments, pivot_length, m)
-        # return np.split(X, self._seg_lens)
         return np.array_split(X, np.cumsum(self._seg_lens[:-1]))
 
     def inverse_transform(self, Xt):
@@ -46,3 +43,20 @@ class Segmenter(BaseEstimator, TransformerMixin):
 
     def get_seglens(self):
         return self._seg_lens
+
+
+
+class Concatenator(BaseEstimator, TransformerMixin):
+    """ Concatenates segments back into a full-length series. Basically the inverse of Segmenter. """
+    def __init__(self):
+        self._seg_lens = []
+    
+    def fit(self, X, y=None, **fit_params):
+        self._seg_lens = [len(xi) for xi in X]
+        return self
+    
+    def transform(self, X):
+        return np.concatenate(X)
+    
+    def inverse_transform(self, Xt):
+        return np.array_split(Xt, np.cumsum(self._seg_lens[:-1]))

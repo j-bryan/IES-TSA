@@ -28,3 +28,21 @@ class TestFourierDetrend:
         
         xhat = F.fit_transform(x)
         assert np.allclose(xhat, np.zeros(xhat.shape))
+    
+    def test_input_shape_rowvec(self):
+        F = FourierDetrend(c=[1])
+        x_row = np.linspace(0, 44/7, 100)
+        xhat_row = F.fit_transform(x_row)
+        assert xhat_row.shape == x_row.shape
+    
+    def test_input_shape_colvec(self):
+        F = FourierDetrend(c=[1])
+        x_col = np.linspace(0, 44/7, 100).reshape(-1, 1)
+        xhat_col = F.fit_transform(x_col)
+        assert xhat_col.shape == x_col.shape
+    
+    def test_input_shape_multivar(self):
+        F = FourierDetrend(c=[1])
+        x_multi = np.linspace(0, 44/7, 300).reshape(3, 100).T
+        xhat_multi = F.fit_transform(x_multi)
+        assert xhat_multi.shape == x_multi.shape

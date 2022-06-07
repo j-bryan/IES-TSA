@@ -1,5 +1,5 @@
 import numpy as np
-from tsmodel.segmentation import Segmenter
+from tsmodel.segmentation import Segmenter, Concatenator
 
 import pytest
 
@@ -76,3 +76,18 @@ class TestSegmenter:
     def test_bad_inputs(self):
         with pytest.raises(ValueError):
             seg = Segmenter()
+
+
+class TestConcatenator:
+    def test_fittransform_rows(self):
+        c = Concatenator()
+        X_seg = np.arange(10).reshape(2, 5)
+        X_cat = c.fit_transform(X_seg)
+        assert np.allclose(X_seg.ravel(), X_cat)
+    
+    def test_fittransform_cols(self):
+        c = Concatenator()
+        X_seg = np.arange(10).reshape(2, 5, 1)
+        X_true = np.arange(10).reshape(-1, 1)
+        X_cat = c.fit_transform(X_seg)
+        assert np.allclose(X_true, X_cat)
