@@ -4,7 +4,6 @@ import itertools
 import numpy as np
 import pandas as pd
 
-from tsmodel import TSModel
 from model_fit import write_train_xml, fit_arma_rom
 from model_eval import evaluate_model, StatEnsemble
 

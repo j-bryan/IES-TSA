@@ -53,12 +53,9 @@ class ClusteringSegmentTransformer(BaseEstimator, TransformerMixin):
         return np.array(self._clusterable_features)  # clusterable features need to be all the same length, so we can go ahead and make this a numpy array
     
     def inverse_transform(self, Xt):
-        """ Xt is an array of clusters """
-        # Build clusters from labels
-        labels = np.sort(np.unique(Xt))
-        clusters = {l: np.argwhere(Xt == l) for l in labels}
-        # Use the defined sampling method to choose a model to generate a new sample with
-        X_seg = []
+        """ Xt is an array of segments from which to generate synthetic segments """
+        # Need to handle time stuff here
+        X = [self._pipes[seg_i].inverse_transform()]
 
     def _collect_clusterable_features(self, trans):
         feature_vector = []

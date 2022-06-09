@@ -159,4 +159,4 @@ class TestSegmentTransformer:
         
         Xt = model.fit_transform(X)
         # assert len(X) == len(Xt)
-        assert len(X) == np.sum(len(seg) for seg in Xt)
+        assert len(X) == np.sum([len(seg) for seg in Xt])

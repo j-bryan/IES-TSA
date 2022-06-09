@@ -1,3 +1,4 @@
+from calendar import month
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -11,9 +12,11 @@ from tsmodel.rom import ROM
 from tsmodel.transformers import FourierDetrend, KDENormalizer, CDFPreserve, ColumnTransformer
 from tsmodel.segmentation import Segmenter, Concatenator, SegmentTransformer
 from tsmodel.models.arma import ARIMA
+from tsmodel.models.garch import ARIMA_GARCH
+from tsmodel.models.regime_switching import MarkovAR
 
 
-def demo_univar():
+def demo_univar_confint():
     """ Demonstrates fitting a model Pipeline with segmentation (with unequal segment lengths). """
     df = pd.read_csv('./data/ERCOT_2021/Data_0.csv', index_col=0)
 
@@ -81,15 +84,15 @@ def demo_univar():
     plt.show()
 
 
-def demo_univar_wind():
+def demo_univar():
     """ Demonstrates fitting a model Pipeline with segmentation (with unequal segment lengths). """
     df = pd.read_csv('./data/ERCOT_2021/Data_0.csv', index_col=0)
 
-    X = df['WIND'].to_numpy().reshape(-1, 1)
+    X = df['TOTALLOAD'].to_numpy().reshape(-1, 1)
     t = np.arange(len(X))
     model = Pipeline([('full_series_fourier', FourierDetrend([8760, 4380, 2920, 2190, 438, 168, 24, 12, 6, 3])),
                       ('kde_normalize', KDENormalizer()),
-                      ('segment', Segmenter(pivot_length=72)),
+                      ('segment', Segmenter(pivot_length=2*168)),
                       ('segment_transformer', SegmentTransformer([('segment_fourier', FourierDetrend([24, 12])),
                                                                   ('segment_arma', ARIMA((2, 0, 1)))])),
                       ('concat', Concatenator()),
@@ -98,17 +101,78 @@ def demo_univar_wind():
     Xt = model.fit_transform(X)
     X_synth = model.inverse_transform(Xt)
 
-    plt.figure(1)
-    plt.title('ERCOT Wind, 2021')
-    plt.plot(X_synth, label='synthetic')
-    plt.plot(X, color='orange', label='historical')
-    plt.legend()
+    # plt.figure(1)
+    # # plt.title('ERCOT Wind, 2021')
+    # plt.plot(X_synth, label='synthetic')
+    # plt.plot(X, color='orange', label='historical')
+    # plt.legend()
 
     plt.figure(2)
     plt.plot(Xt)
     plt.xlabel('Time (h)')
     plt.ylabel('Normalized Residual')
-    plt.title('ERCOT Wind, 2021')
+    # plt.title('ERCOT Wind, 2021')
+    plt.savefig('./plots/ERCOT/normresid_load_2weeksegments.png', dpi=150)
+
+    plt.show()
+
+
+def demo_univar_garch():
+    """ Demonstrates fitting a model Pipeline with segmentation (with unequal segment lengths). """
+    df = pd.read_csv('./data/ERCOT_2021/Data_0.csv', index_col=0)
+
+    X = df['TOTALLOAD'].to_numpy()
+    t = np.arange(len(X))
+    # model = Pipeline([('full_series_fourier', FourierDetrend([8760, 4380, 2920, 2190, 438, 168, 24, 12, 6, 3])),
+    #                   ('kde_normalize', KDENormalizer()),
+    #                   ('segment', Segmenter(pivot_length=72)),
+    #                   ('segment_transformer', SegmentTransformer([('segment_fourier', FourierDetrend([24, 12]))])),
+    #                   ('concat', Concatenator()),
+    #                   ('garch', ARIMA_GARCH(arima_order=(3, 0, 2))),
+    #                   ('passthrough', None)])
+    preproc = Pipeline([('full_series_fourier', FourierDetrend([8760, 4380, 2920, 2190, 438, 168, 24, 12, 6, 3])),
+                        ('kde_normalize', KDENormalizer()),
+                        ('segment', Segmenter(pivot_length=24)),
+                        ('segment_transformer', SegmentTransformer([('segment_fourier', FourierDetrend([12, 6, 3]))])),
+                        ('concat', Concatenator()),
+                        ('passthrough', None)])
+    model = Pipeline([('garch', ARIMA_GARCH(arima_order=(1, 0, 0))),
+                      ('passthrough', None)])
+    model2 = Pipeline([('arma', ARIMA(order=(1, 0, 0))),
+                       ('passthrough', None)])
+    model3 = Pipeline([('arma', MarkovAR(k_regimes=4, order=1)),
+                       ('passthrough', None)])
+
+    X_resid = preproc.fit_transform(X)
+
+    Xt = model.fit_transform(X_resid)
+    Xt2 = model2.fit_transform(X_resid)
+    Xt3 = model3.fit_transform(X_resid)
+
+    X_synth_resid = model.inverse_transform(Xt)
+    X_synth_resid_arma = model2.inverse_transform(Xt2)
+    X_synth_resid_mar = model3.inverse_transform(Xt3)
+    
+    X_synth_garch = preproc.inverse_transform(X_synth_resid)
+    X_synth_arma = preproc.inverse_transform(X_synth_resid_arma)
+    X_synth_markov = preproc.inverse_transform(X_synth_resid_mar)
+
+    plt.figure(1)
+    plt.title('ERCOT Load, 2021')
+    plt.plot(X_synth_garch, label='arma-garch')
+    plt.plot(X_synth_arma, label='arma')
+    plt.plot(X_synth_markov, label='markov switching')
+    plt.plot(X, color='orange', label='historical')
+    plt.legend()
+
+    plt.figure(2)
+    plt.plot(X_resid, label='Historical')
+    plt.plot(X_synth_resid, label='ARMA-GARCH')
+    plt.plot(X_synth_resid_arma, label='ARMA')
+    plt.xlabel('Time (h)')
+    plt.ylabel('Normalized Residual')
+    plt.legend()
+    plt.title('ERCOT Load, 2021')
     # plt.savefig('./plots/ERCOT/normresid_load.png', dpi=150)
 
     plt.show()
@@ -120,13 +184,18 @@ def demo_multivar():
     X = df[['TOTALLOAD', 'WIND']].to_numpy()
     t = np.arange(len(X))
 
+    month_segments = np.array([31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]) * 24
+    quarterly_segments = np.array([31 + 28 + 31, 30 + 31 + 30, 31 + 31 + 30, 31 + 30 + 31]) * 24
+    months = np.cumsum(np.array([0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30]) * 24)
+    labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
     kde_column_transformer = ColumnTransformer([('col1', KDENormalizer(), [0]),
                                                 ('col2', KDENormalizer(), [1])])
-    segment_transformer = SegmentTransformer([('segment_fourier', FourierDetrend([24, 12])),
-                                              ('segment_arma', ARIMA((2, 0, 1)))])
+    segment_transformer = SegmentTransformer([('segment_fourier', FourierDetrend([12, 6, 3])),
+                                              ('segment_arma', ARIMA((1, 0, 0)))])
     model = Pipeline([('full_series_fourier', FourierDetrend([8760, 4380, 2920, 2190, 438, 168, 24, 12, 6, 3])),
                       ('kde_normalize', kde_column_transformer),
-                      ('segment', Segmenter(pivot_length=168)),
+                      ('segment', Segmenter(pivot_length=24)),
                       ('segment_transformer', segment_transformer),
                       ('concat', Concatenator()),
                       ('passthrough', None)])
@@ -135,19 +204,67 @@ def demo_multivar():
     X_synth = model.inverse_transform(Xt)
 
     plt.figure(1)
-    plt.plot(X_synth[:, 0], label='synth')
-    plt.plot(X[:, 0], label='real')
+    plt.plot(t, X_synth[:, 0], label='synth')
+    plt.plot(t, X[:, 0], label='real')
+    plt.xticks(ticks=months, labels=labels)
+    plt.ylabel('Total Load, MWh')
+    plt.title('ERCOT Total Load, 2021\nSegments: 24 hours')
+    plt.legend()
+    plt.savefig('./plots/ercot_load_synth_daily.png', dpi=150)
+
+    # plt.figure(2)
+    # plt.plot(t, X_synth[:, 1], label='synth')
+    # plt.plot(t, X[:, 1], label='real')
+    # plt.ylabel(r'Wind Generation, $\%$ of Capacity')
+    # plt.xticks(ticks=months, labels=labels)
+    # plt.legend()
+
+    plt.show()
+
+
+def demo_mar():
+    """ Demonstrates fitting a model Pipeline with segmentation (with unequal segment lengths). """
+    df = pd.read_csv('./data/ERCOT_2021/Data_0.csv', index_col=0)
+
+    X = df['TOTALLOAD'].to_numpy()
+    t = np.arange(len(X))
+
+    preproc = Pipeline([('full_series_fourier', FourierDetrend([8760, 4380, 2920, 2190, 438, 168, 24, 12, 6, 3])),
+                        ('kde_normalize', KDENormalizer()),
+                        ('segment', Segmenter(pivot_length=24)),
+                        ('segment_transformer', SegmentTransformer([('segment_fourier', FourierDetrend([12, 6, 3]))])),
+                        ('concat', Concatenator()),
+                        ('passthrough', None)])
+
+    model3 = Pipeline([('arma', MarkovAR(k_regimes=4, order=1, switching_variance=True)),
+                       ('passthrough', None)])
+
+    X_resid = preproc.fit_transform(X)
+    Xt3 = model3.fit_transform(X_resid)
+    X_synth_resid_mar = model3.inverse_transform(Xt3)
+    X_synth_markov = preproc.inverse_transform(X_synth_resid_mar)
+
+    plt.figure(1)
+    plt.title('ERCOT Load, 2021')
+    plt.plot(X_synth_markov, label='markov switching')
+    plt.plot(X, color='orange', label='historical')
     plt.legend()
 
     plt.figure(2)
-    plt.plot(X_synth[:, 1], label='synth')
-    plt.plot(X[:, 1], label='real')
+    plt.plot(X_resid, label='Historical')
+    plt.plot(X_synth_resid_mar, label='Markov')
+    plt.xlabel('Time (h)')
+    plt.ylabel('Normalized Residual')
     plt.legend()
+    plt.title('ERCOT Load, 2021')
+    # plt.savefig('./plots/ERCOT/normresid_load.png', dpi=150)
 
     plt.show()
 
 
 if __name__ == '__main__':
     # demo_univar()
+    # demo_univar_garch()
+    demo_mar()
     # demo_univar_wind()
-    demo_multivar()
+    # demo_multivar()
