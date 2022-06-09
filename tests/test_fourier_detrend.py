@@ -8,9 +8,11 @@ class TestFourierDetrend:
         with a single sine wave.
         """
         F = FourierDetrend(c=[1])
-        t = np.arange(100)
+        t = np.arange(10)
         x = np.sin(2 * np.pi * t)
         xhat = F.fit_transform(x)
+        print(xhat.shape)
+        print(xhat)
         assert np.allclose(xhat, np.zeros(xhat.shape))
     
     def test_fourier_multi(self):

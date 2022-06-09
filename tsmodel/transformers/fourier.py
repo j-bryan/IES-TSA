@@ -1,53 +1,49 @@
 import numpy as np
-from sklearn.base import BaseEstimator, TransformerMixin
 from scipy.signal import periodogram
+from sklearn.base import BaseEstimator, TransformerMixin
+from tsmodel.base import Clusterable
 
 
-class FourierDetrendBase(BaseEstimator, TransformerMixin):
+class FourierDetrendBase(BaseEstimator, TransformerMixin, Clusterable):
     def __init__(self):
-        self._F = None
+        super().__init__()
+        self._m = None  # model parameters (i.e. amplitudes, intercept)
+        self._P = None  # Fourier periods
 
-    def fit(self, X, y=None):
+    def fit(self, X, y=None, **fit_params):
         raise NotImplementedError
 
     def transform(self, X, y=None):
-        if isinstance(self._F, list):
-            return [X[i] - self._F[i] for i in range(len(X))]
-        else:
-            return X - self._F
+        t = np.arange(len(X)).reshape(-1, 1)
+        return X - self.F(t)
 
     def inverse_transform(self, Xt, y=None):
-        if isinstance(self._F, list):
-            return [Xt[i] + self._F[i] for i in range(len(Xt))]
-        else:
-            return Xt + self._F
+        t = np.arange(len(Xt)).reshape(-1, 1)
+        return Xt + self.F(t)
+
+    # def _fourier_lstsq(self, X, c):
+    #     """ Fits a given set of Fourier modes given by c and k to the signal x """
+    #     t = np.arange(len(X)).reshape(-1, 1)
+    #     self._P = np.asarray(c, dtype=float).ravel()
+        
+    #     # G = np.hstack((np.ones((len(t), 1)), np.sin(2 * np.pi * t @ (P ** -1)), np.cos(2 * np.pi * t @ (P ** -1))))
+    #     G = np.hstack((np.ones((len(t), 1)), np.sin(2 * np.pi / P * t), np.cos(2 * np.pi / P * t)))
+    #     self._m = np.linalg.pinv(G) @ X
+
+    #     F = G @ self._m  # reconstructs Fourier signal with estimated amplitudes
+    #     self._clusterable_features.extend(m.ravel())
+
+    #     return F
     
-    def _fourier_segmented(self, x, c, k):
-        xhats = []
-        for i, x_seg in enumerate(x):
-            xhats.append(self._fourier_lstsq(x_seg, c, k))
-        return xhats
-
-    def _fourier_lstsq(self, x, c, k):
-        """ Fits a given set of Fourier modes given by c and k to the signal x """
-        if isinstance(x, list) or x.ndim == 3:
-            return self._fourier_segmented(x, c, k)
-        
-        t = np.arange(len(x))
-        
-        P = np.zeros((len(c), k))  # periods are all (c_i / f_j)
-        for i, ci in enumerate(c):
-            for j in range(k):
-                P[i, j] = ci / (j + 1)
-        P = P.ravel()
-
-        G = np.hstack(
-            (np.ones((len(t), 1)), np.sin(2 * np.pi / P * t.reshape(-1, 1)), np.cos(2 * np.pi / P * t.reshape(-1, 1))))
-        m = np.linalg.pinv(G) @ x
-
-        xhat = G @ m
-
-        return xhat
+    def fit_fourier_params(self, X, c, **fit_params):
+        t = np.arange(len(X)).reshape(-1, 1)
+        self._P = np.asarray(c, dtype=float).ravel()
+        G = np.hstack((np.ones((len(t), 1)), np.sin(2 * np.pi / self._P * t), np.cos(2 * np.pi / self._P * t)))
+        self._m = np.linalg.pinv(G) @ X
+    
+    def F(self, t):
+        G = np.hstack((np.ones((len(t), 1)), np.sin(2 * np.pi / self._P * t), np.cos(2 * np.pi / self._P * t)))
+        return G @ self._m
 
 
 class FFTDetrend(FourierDetrendBase):
@@ -55,19 +51,50 @@ class FFTDetrend(FourierDetrendBase):
         super().__init__()
         self._nfreq = nfreq
 
-    def fit(self, X, y=None):
+    def fit(self, X, y=None, **fit_params):
         f, Pxx = periodogram(X.ravel())  # TODO: won't work well for all input shapes
         inds = np.argpartition(Pxx, -self._nfreq)[-self._nfreq:]
-        self._F = self._fourier_lstsq(X, 1/f[inds], 1).reshape(-1, 1)
+        P = 1 / f[inds]
+        self.fit_fourier_params(X, P)
         return self
 
 
 class FourierDetrend(FourierDetrendBase):
-    def __init__(self, c, k=1):
+    def __init__(self, c):
+        super().__init__()
+        self._P = np.asarray(c).ravel()
+
+    def fit(self, X, y=None, **fit_params):
+        self.fit_fourier_params(X, self._P)
+        return self
+
+
+class SegmentFourierDetrend(FourierDetrendBase):
+    def __init__(self, c):
         super().__init__()
         self._c = c
-        self._k = k
-
-    def fit(self, X, y=None):
-        self._F = self._fourier_lstsq(X, self._c, self._k)
+        self._clusterable_features = []
+    
+    def _fourier_segmented(self, x, c):
+        Fs = []
+        ms = []
+        for i, x_seg in enumerate(x):
+            F, m = self._fourier_lstsq(x_seg, c)
+            Fs.append(F)
+            ms.append(m)
+        return Fs
+    
+    def fit(self, X, y=None, **fit_params):
+        self._F, self._m = self._fourier_segmented(X)
+        self._clusterable_features.extend(list(self._F))
+        self._clusterable_features.extend(list(self._m))
         return self
+
+    def transform(self, X):
+        return [Xi - Fi for (Xi, Fi) in zip(X, self._F)]
+
+    def inverse_transform(self, Xt):
+        return [Xt[i] + self._F[i] for i in range(len(Xt))]
+
+    def get_clusterable_features(self):
+        return self._clusterable_features

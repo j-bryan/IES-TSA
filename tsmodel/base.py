@@ -1,3 +1,6 @@
-class TSTransformerBase:
+class Clusterable:
     def __init__(self):
-        self.clusterable_features = []
+        self._clusterable_features = []
+    
+    def get_clusterable_features(self):
+        return self._clusterable_features

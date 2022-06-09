@@ -56,7 +56,7 @@ class ROMTree:
     """
     def __init__(self):
         self.root = None
-        self.leaf
+        self.leaf = None
     
     def add_node(self, n):
         pass

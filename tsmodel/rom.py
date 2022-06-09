@@ -1,7 +1,3 @@
-from tsmodel.models.base import TimeSeriesBase
-from sklearn.base import TransformerMixin
-
-
 class ROM:
     def __init__(self, preprocessor, model, postprocessor=None):
         """
@@ -21,16 +17,11 @@ class ROM:
         self._fit_model = None
         self._input_shape = None
 
-        # TODO: add ability to detect segmentation and clustering, detecting when multiple pipelines should be built
-        ## Have two base classes: TransformerBase, SegmentedTransformerBase
-        ## Need to add Segmenter class that will split up the transformed time series
-        ##      - inverse_transform() joins the segments back together
-        ## After segmentation, each subsequent model needs to be applied to each segment individually
-        ## 
+        # self._has_preproc_estimator = True if 
 
     def fit(self, X):
         self._input_shape = X.shape
-        Xt = self._preprocessor.fit_transform(X)            
+        Xt = self._preprocessor.fit_transform(X)  # TODO: use fit_predict if the last step is something like KMeans()
         self._fit_model = fit_res = self._model.fit(Xt)
         if self._postprocessor:
             self._postprocessor.fit(X)

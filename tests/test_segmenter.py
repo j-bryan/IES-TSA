@@ -72,6 +72,16 @@ class TestSegmenter:
 
         for i in range(len(X_seg)):  # np.allclose can't handle a list that can't be put into a numpy array
             assert np.allclose(X_seg[i], X_seg_true[i])
+
+    def test_multivariate_unevensplit(self):
+        X = np.arange(30).reshape((3, 10)).T
+        seg = Segmenter(pivot_length=4)
+
+        X_seg = seg.fit_transform(X)
+        X_seg_true = [X_seg[:4], X_seg[4:8], X_seg[8:]][0]
+
+        for i in range(len(X_seg)):  # np.allclose can't handle a list that can't be put into a numpy array
+            assert np.allclose(X_seg[i], X_seg_true[i])
     
     def test_bad_inputs(self):
         with pytest.raises(ValueError):
@@ -91,3 +101,13 @@ class TestConcatenator:
         X_true = np.arange(10).reshape(-1, 1)
         X_cat = c.fit_transform(X_seg)
         assert np.allclose(X_true, X_cat)
+    
+    def test_list(self):
+        c = Concatenator()
+        X_seg = [np.arange(20).reshape(10, 2) for _ in range(5)]
+        X_cat = c.fit_transform(X_seg)
+        X_inv = c.inverse_transform(X_cat)
+
+        assert len(X_cat) == np.sum([len(seg) for seg in X_seg])
+        assert len(X_inv) == len(X_seg)
+        assert np.allclose(X_inv, X_seg)
