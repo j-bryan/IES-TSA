@@ -1,3 +1,5 @@
+import sys
+import os
 import argparse
 import dill as pickle
 import itertools
@@ -10,9 +12,6 @@ from model_eval import evaluate_model, StatEnsemble
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
-# scipy.stats.ks_2samp(): two-sample Kolmogorov-Smirnov test
-# statsmodels.stats.diagnostic.het_breushpagan(): Breush-Pagan test for heteroskedasticity
-# scipy.stats.wasserstein_distance(): Wasserstein distance between two 
 
 
 def product_dict(**kwargs):
@@ -22,16 +21,29 @@ def product_dict(**kwargs):
         yield dict(zip(keys, instance))
 
 
-def main(working_dir):
+def get_paths(iso, working_directory):
+    DATA_DIR = os.path.join(working_directory, f'data\\{iso}_2021')
+    TEMPLATE_PATH = os.path.join(working_directory, f'train_templates\\train_template_{iso.lower()}.xml')
+    RESULTS_BASE_DIR = os.path.join(working_directory, f'model_fit_results\\{iso}_2021')
+    paths = {
+        'base': working_directory,
+        'data': DATA_DIR,
+        'template': TEMPLATE_PATH,
+    }
+    return paths
+
+
+def main(ISO):
+    BASE_DIR = os.getcwd()
+    paths = get_paths(ISO, BASE_DIR)
+
     P = [1, 2, 3]
     Q = [0, 1, 2, 3]
-    # L = [24]  # segment lengths
-    # K = [2]  # number of clusters; skip k if there would be fewer than 10 segments per cluster on average
-    L = [24, 146, 365, 730, 2190]  # segment lengths
-    K = [2, 4, 8, 16, 32]  # number of clusters; skip k if there would be fewer than 10 segments per cluster on average
-    preserveCDF = ['True', 'False']
+    L = [24, 146, 365]  # segment lengths
+    K = [2, 4, 8, 12, 16, 20]  # number of clusters; skip k if there would be fewer than 10 segments per cluster on average
+    preserveCDF = ['False']
 
-    model_params = {'WorkingDir': [('', working_dir)],  # node name: (attribute name, value to set); attribute name '' indicates that it's a node text value
+    model_params = {'WorkingDir': [('', paths.get('data'))],  # node name: (attribute name, value to set); attribute name '' indicates that it's a node text value
                     'P': [('', str(p)) for p in P],
                     'Q': [('', str(q)) for q in Q],
                     'n_clusters': [('', str(k)) for k in K],
@@ -42,29 +54,38 @@ def main(working_dir):
 
     for params in product_dict(**model_params):
         n_segments = 8760 / int(params['subspace'][1])
-        print('# Segments:', int(n_segments))
         if int(params['n_clusters'][1]) > n_segments:
             continue
 
-        train_xml_path = write_train_xml(params)
+        p = int(params['P'][1])
+        q = int(params['Q'][1])
+        pivotLength  = int(params['subspace'][1])
+        if p + q + 2 >= pivotLength / 3:  # try to catch cases of too few data for the number of ARMA parameters
+            continue
+
+        results_dir = os.path.join(paths['data'],  f'K{params["n_clusters"][1]}_L{params["subspace"][1]}_P{params["P"][1]}_Q{params["Q"][1]}')
+        if not os.path.exists(results_dir):
+            os.makedirs(results_dir)
+        paths['results'] = results_dir
+        params['WorkingDir'] = ('', paths['results'])
+
+        train_xml_path = write_train_xml(params, paths)
+        os.chdir(BASE_DIR)
         try:
             fit_arma_rom(train_xml_path)
-        except ValueError:
+        except Exception as e:
+            os.chdir(BASE_DIR)
             continue  # just skip to the next one; check log to see why this didn't run correctly
+        os.chdir(BASE_DIR)
 
-        res = evaluate_model(working_dir, params)
+        res = evaluate_model(paths, params)
         ens.append(res)
 
-    print(ens.fetch_all())
-    with open('ensemble.pk', 'wb') as f:
-        pickle.dump(ens, f)
+    stats_summary = ens.fetch_all()
+    stats_summary.to_csv(os.path.join(paths['data'], 'statistics.csv'))
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        'DIR', help='Data working directory'
-    )
-    args = parser.parse_args()
-    
-    main(args.DIR)
+    # main('CAISO')
+    main('ERCOT')
+    # main('MISO')
