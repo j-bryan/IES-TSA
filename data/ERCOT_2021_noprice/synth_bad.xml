@@ -1,0 +1,17 @@
+<DataObjectMetadata name="synth_bad">
+  <DataSet type="Static">
+    <dims>
+      <SOLAR>YEAR,HOUR</SOLAR>
+      <TOTALLOAD>YEAR,HOUR</TOTALLOAD>
+      <WIND>YEAR,HOUR</WIND>
+    </dims>
+    <general>
+      <datasetName>synth_bad</datasetName>
+      <inputs>scaling</inputs>
+      <outputs>TOTALLOAD,WIND,SOLAR</outputs>
+      <pointwise_meta>PointProbability,ProbabilityWeight,prefix</pointwise_meta>
+      <sampleTag>RAVEN_sample_ID</sampleTag>
+    </general>
+  </DataSet>
+  
+</DataObjectMetadata>
