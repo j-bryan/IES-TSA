@@ -22,9 +22,10 @@ def product_dict(**kwargs):
 
 
 def get_paths(iso, working_directory):
-    DATA_DIR = os.path.join(working_directory, f'data\\{iso}_2021')
-    TEMPLATE_PATH = os.path.join(working_directory, f'train_templates\\train_template_{iso.lower()}.xml')
-    RESULTS_BASE_DIR = os.path.join(working_directory, f'model_fit_results\\{iso}_2021')
+    DATA_DIR = os.path.join(working_directory, f'data/{iso}_2021')
+    # TEMPLATE_PATH = os.path.join(working_directory, f'train_templates/train_template_{iso.lower()}.xml')
+    TEMPLATE_PATH = os.path.join(working_directory, f'train_templates_price/train_template_{iso.lower()}.xml')
+    RESULTS_BASE_DIR = os.path.join(working_directory, f'model_fit_results/{iso}_2021')
     paths = {
         'base': working_directory,
         'data': DATA_DIR,
@@ -37,10 +38,15 @@ def main(ISO):
     BASE_DIR = os.getcwd()
     paths = get_paths(ISO, BASE_DIR)
 
+    # P = [1]
+    # Q = [0, 1]
+    # L = [24]  # segment lengths
+    # K = [4]  # number of clusters; skip k if there would be fewer than 10 segments per cluster on average
+    # preserveCDF = ['False']
     P = [1, 2, 3]
     Q = [0, 1, 2, 3]
-    L = [24, 146, 365]  # segment lengths
-    K = [2, 4, 8, 12, 16, 20]  # number of clusters; skip k if there would be fewer than 10 segments per cluster on average
+    L = [24, 40, 60, 73, 120]  # segment lengths
+    K = [4, 8, 12, 16]  # number of clusters; skip k if there would be fewer than 10 segments per cluster on average
     preserveCDF = ['False']
 
     model_params = {'WorkingDir': [('', paths.get('data'))],  # node name: (attribute name, value to set); attribute name '' indicates that it's a node text value
@@ -53,8 +59,10 @@ def main(ISO):
     ens = StatEnsemble()
 
     for params in product_dict(**model_params):
+        sys.argv = ['main.py']
         n_segments = 8760 / int(params['subspace'][1])
-        if int(params['n_clusters'][1]) > n_segments:
+        n_clusters = int(params['n_clusters'][1])
+        if n_clusters > 2 * n_segments:
             continue
 
         p = int(params['P'][1])
@@ -86,6 +94,6 @@ def main(ISO):
 
 
 if __name__ == '__main__':
-    # main('CAISO')
-    main('ERCOT')
+    main('CAISO')
+    # main('ERCOT')
     # main('MISO')

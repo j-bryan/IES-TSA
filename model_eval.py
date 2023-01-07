@@ -70,6 +70,8 @@ class ModelAssessment:
 
     def _ecdf_plot(self, pth):
         fig, ax = plt.subplots(nrows=len(self.names))
+        if len(self.names) == 1:
+            ax = [ax]
         fig.suptitle(self._params_title())
         for i, n in enumerate(self.names):
             vals_h = self._mask_zeros(self.df_h[n], n)
@@ -83,6 +85,8 @@ class ModelAssessment:
 
     def _sample_plot(self, pth):
         fig, ax = plt.subplots(nrows=len(self.names))
+        if len(self.names) == 1:
+            ax = [ax]
         fig.suptitle(self._params_title())
         for i, n in enumerate(self.names):
             vals_h = self._mask_zeros(self.df_h[n], n)
@@ -97,6 +101,8 @@ class ModelAssessment:
 
     def _qqplot(self, pth):
         fig, ax = plt.subplots(ncols=len(self.names))
+        if len(self.names) == 1:
+            ax = [ax]
         fig.suptitle(self._params_title())
         for i, n in enumerate(self.names):
             vals_h = self._mask_zeros(self.df_h[n], n)
@@ -106,25 +112,6 @@ class ModelAssessment:
             qqplot_2samples(vals_s, vals_h, xlabel='Synthetic', ylabel='Historical', line='45', ax=ax[i])
         plt.savefig(os.path.join(pth, 'qq.png'))
         plt.close(fig)
-
-    # def _violinplot(self, pth):
-    #     data = []
-    #     fig, ax = plt.subplots()
-    #     fig.suptitle(self._params_title())
-    #     for n in self.names:
-    #         vals_h = self._mask_zeros(self.df_h[n], n)
-    #         vals_s = self._mask_zeros(self.df_s[n], n)
-    #         min_val = min(min(vals_h), min(vals_s))
-    #         max_val = max(max(vals_h), max(vals_s))
-    #         vals_h_scaled = (vals_h - min_val) / (max_val - min_val)
-    #         vals_s_scaled = (vals_s - min_val) / (max_val - min_val)
-    #         data.extend(zip(['Historical'] * len(vals_h_scaled), [n] * len(vals_h_scaled), list(vals_h_scaled)))
-    #         data.extend(zip(['Synthetic'] * len(vals_s_scaled), [n] * len(vals_s_scaled), list(vals_s_scaled)))
-    #     df_tmp = pd.DataFrame(data, columns=['Source', 'Variable', 'Value'])
-    #     ax = sns.violinplot(x="Variable", y="Value", hue="Source", data=df_tmp, split=True)
-    #     ax.set_ylabel('MinMax Scaled Value')
-    #     plt.savefig(os.path.join(pth, 'violin.png'))
-    #     plt.close(fig)
 
     def summarize(self):
         return ModelSummary(self)
@@ -174,5 +161,13 @@ class StatEnsemble:
 def evaluate_model(paths, params):
     df_sh = pd.read_csv(os.path.join(paths['results'], 'synth.csv'))  # load synthetic histories
     df_hist = pd.read_csv(os.path.join(paths['data'], 'Data_0.csv'))
+    
+    sh_cols = list(df_sh.columns)
+    cols_to_drop = []
+    for hist_col in df_hist.columns:
+        if hist_col not in sh_cols:
+            cols_to_drop.append(hist_col)
+    df_hist = df_hist.drop(columns=cols_to_drop)
+
     s = ModelAssessment(df_hist, df_sh, params)
     return s
