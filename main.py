@@ -22,7 +22,7 @@ def product_dict(**kwargs):
 
 
 def get_paths(iso, working_directory):
-    DATA_DIR = os.path.join(working_directory, f'data/{iso}_2021')
+    DATA_DIR = os.path.join(working_directory, f'data/{iso}_5year')
     # TEMPLATE_PATH = os.path.join(working_directory, f'train_templates/train_template_{iso.lower()}.xml')
     TEMPLATE_PATH = os.path.join(working_directory, f'train_templates_price/train_template_{iso.lower()}.xml')
     RESULTS_BASE_DIR = os.path.join(working_directory, f'model_fit_results/{iso}_2021')
@@ -35,6 +35,9 @@ def get_paths(iso, working_directory):
 
 
 def main(ISO):
+    import warnings
+    warnings.filterwarnings('ignore')
+
     BASE_DIR = os.getcwd()
     paths = get_paths(ISO, BASE_DIR)
 
@@ -45,9 +48,10 @@ def main(ISO):
     # preserveCDF = ['False']
     P = [1, 2, 3]
     Q = [0, 1, 2, 3]
-    L = [24, 40, 60, 73, 120]  # segment lengths
-    K = [4, 8, 12, 16]  # number of clusters; skip k if there would be fewer than 10 segments per cluster on average
-    preserveCDF = ['False']
+    # L = [24, 40, 60, 73, 120]  # segment lengths
+    L = [24, 48]  # segment lengths
+    K = [4, 8, 16, 32]  # number of clusters; skip k if there would be fewer than 10 segments per cluster on average
+    preserveCDF = ['True']
 
     model_params = {'WorkingDir': [('', paths.get('data'))],  # node name: (attribute name, value to set); attribute name '' indicates that it's a node text value
                     'P': [('', str(p)) for p in P],
@@ -59,11 +63,8 @@ def main(ISO):
     ens = StatEnsemble()
 
     for params in product_dict(**model_params):
+        print(params)
         sys.argv = ['main.py']
-        n_segments = 8760 / int(params['subspace'][1])
-        n_clusters = int(params['n_clusters'][1])
-        if n_clusters > 2 * n_segments:
-            continue
 
         p = int(params['P'][1])
         q = int(params['Q'][1])
@@ -88,12 +89,13 @@ def main(ISO):
 
         res = evaluate_model(paths, params)
         ens.append(res)
+        break
 
     stats_summary = ens.fetch_all()
     stats_summary.to_csv(os.path.join(paths['data'], 'statistics.csv'))
 
 
 if __name__ == '__main__':
-    main('CAISO')
+    # main('CAISO')
     # main('ERCOT')
-    # main('MISO')
+    main('MISO')

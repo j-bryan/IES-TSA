@@ -17,7 +17,9 @@ class ModelAssessment:
         self.df_s = df_s
         self._zero_mask_vars = ['SOLAR']
         self.model_params = model_params
-        var_names = df_h.columns[1:]  # drop HOUR column
+        # var_names = df_h.columns[1:]  # drop HOUR column
+        var_names = list(df_h.columns)  # drop HOUR column
+        var_names.remove('HOUR')
         self.names = var_names
 
         data = []
@@ -85,19 +87,19 @@ class ModelAssessment:
 
     def _sample_plot(self, pth):
         fig, ax = plt.subplots(nrows=len(self.names))
+        df_s = self.df_s.query('RAVEN_sample_ID == 0')
         if len(self.names) == 1:
             ax = [ax]
         fig.suptitle(self._params_title())
         for i, n in enumerate(self.names):
             vals_h = self._mask_zeros(self.df_h[n], n)
-            vals_s = self._mask_zeros(self.df_s[n], n)
+            vals_s = self._mask_zeros(df_s[n], n)
             ax[i].set_ylabel(n)
             ax[i].plot(vals_h, label='Hist')
-            ax[i].plot(vals_s[:8760], label='Synth')
+            ax[i].plot(vals_s, label='Synth')
             ax[i].legend()
         plt.savefig(os.path.join(pth, 'samples.png'))
         plt.close(fig)
-
 
     def _qqplot(self, pth):
         fig, ax = plt.subplots(ncols=len(self.names))

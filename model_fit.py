@@ -7,7 +7,8 @@ import sys
 # import logging
 # logging.basicConfig(filename='arma_training.log', level=logging.DEBUG)
 
-RAVENFRAMEWORK = '/home/force-ies/raven'  # TODO: change this to the correct path for your machine
+# RAVENFRAMEWORK = '/home/force-ies/raven'  # TODO: change this to the correct path for your machine
+RAVENFRAMEWORK = '/root/raven'  # TODO: change this to the correct path for your machine
 sys.path.append(RAVENFRAMEWORK)
 
 from ravenframework.Driver import main
