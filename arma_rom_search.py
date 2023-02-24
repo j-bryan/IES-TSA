@@ -39,8 +39,8 @@ def worker(params):
     paths = params.pop('paths')
 
     results_dir = os.path.join(paths['data'],  f'K{params["n_clusters"][1]}_L{params["subspace"][1]}_P{params["P"][1]}_Q{params["Q"][1]}')
-    # if not os.path.exists(results_dir):
-    #     os.makedirs(results_dir)
+    if not os.path.exists(results_dir):
+        os.makedirs(results_dir)
     paths['results'] = results_dir
     params['WorkingDir'] = ('', paths['results'])
 
