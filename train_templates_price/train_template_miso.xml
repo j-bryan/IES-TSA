@@ -1,5 +1,5 @@
 <?xml version="1.0" ?>
-<Simulation verbosity="silent">
+<Simulation verbosity="all">
   <!-- NOTE: THE DATA FOR THIS INPUT FILE IS NOT INCLUDED IN THIS REPOSITORY!
    THIS IS JUST INCLUDED FOR POSTERITY SO IT CAN BE TRACKED UNTIL IT'S MOVED TO FORCE -->
   <RunInfo>
