@@ -89,11 +89,14 @@ def main(ISO):
     
     with mp.Pool() as p:
         results = p.map(func=worker, iterable=all_params)
-        print(results)
 
-    # ens = StatEnsemble()
-    # stats_summary = ens.fetch_all()
-    # stats_summary.to_csv(os.path.join(paths['data'], 'statistics.csv'))
+    ens = StatEnsemble()
+    for result in results:
+        if result is None:
+            continue
+        ens.append(result)
+    stats_summary = ens.fetch_all()
+    stats_summary.to_csv(os.path.join(paths['data'], 'statistics.csv'))
 
 
 if __name__ == '__main__':
