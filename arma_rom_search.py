@@ -50,16 +50,11 @@ def main(args):
     paths['base'] = BASE_DIR
     paths = {k: os.path.abspath(v) for k, v in paths.items()}
 
-    P = [1, 2]
-    Q = [0]
-    L = [24]  # segment lengths
-    K = [4]  # number of clusters; skip k if there would be fewer than 10 segments per cluster on average
+    P = [1, 2, 3]
+    Q = [0, 1, 2, 3]
+    L = [24, 40, 73]  # segment lengths
+    K = [4, 8, 16, 32]  # number of clusters; skip k if there would be fewer than 10 segments per cluster on average
     preserveCDF = ['True']
-    # P = [1, 2, 3]
-    # Q = [0, 1, 2, 3]
-    # L = [24, 48]  # segment lengths
-    # K = [4, 8, 16, 32]  # number of clusters; skip k if there would be fewer than 10 segments per cluster on average
-    # preserveCDF = ['True']
 
     model_params = {'WorkingDir': [('', paths.get('data'))],  # node name: (attribute name, value to set); attribute name '' indicates that it's a node text value
                     'P': [('', str(p)) for p in P],
