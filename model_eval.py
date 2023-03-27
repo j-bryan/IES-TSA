@@ -4,6 +4,8 @@ import numpy as np
 import scipy
 import pandas as pd
 import statsmodels as sm
+from statsmodels.tsa.stattools import acf
+from statsmodels.tsa.stattools import pacf
 
 from statsmodels.graphics.gofplots import qqplot_2samples
 from statsmodels.graphics.boxplots import violinplot
@@ -29,9 +31,26 @@ class ModelAssessment:
 
             ks_res = scipy.stats.ks_2samp(vals_h, vals_s)
             wd = scipy.stats.wasserstein_distance(vals_h, vals_s)
-            data.append([n, ks_res.statistic, ks_res.pvalue, wd])
+            
+            # Calculate autocorrelation function for historical and synthetic data
+            acf_h, acf_h_confint = acf(vals_h, nlags=24, alpha=0.05)
+            acf_s, acf_s_confint = acf(vals_s, nlags=24, alpha=0.05)
+            # If 0 is contained in the 95% CI, set that lag to 0
+            acf_h[acf_h_confint.prod(axis=1) < 0] = 0
+            acf_s[acf_s_confint.prod(axis=1) < 0] = 0
+            # Calculate the squared error between the historical and synthetic data ACFs.
+            acf_se = np.sum((acf_h - acf_s) ** 2)
 
-        self.stats = pd.DataFrame(data, columns=['var', 'KS2samp_Fstat', 'KS2samp_pvalue', 'WassersteinDist'])
+            # Repeat for PACF
+            pacf_h, pacf_h_confint = pacf(vals_h, nlags=24, alpha=0.05)
+            pacf_s, pacf_s_confint = pacf(vals_s, nlags=24, alpha=0.05)
+            pacf_h[pacf_h_confint.prod(axis=1) < 0] = 0
+            pacf_s[pacf_s_confint.prod(axis=1) < 0] = 0
+            pacf_se = np.sum((pacf_h - pacf_s) ** 2)
+
+            data.append([n, ks_res.statistic, ks_res.pvalue, wd, acf_se, pacf_se])
+
+        self.stats = pd.DataFrame(data, columns=['var', 'KS2samp_Fstat', 'KS2samp_pvalue', 'WassersteinDist', 'ACF_SE', 'PACF_SE'])
 
         wdir = model_params['WorkingDir'][1]
         figs_dir = os.path.join(model_params['WorkingDir'][1], 'figures')

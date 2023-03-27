@@ -84,8 +84,10 @@ def main(args):
         results = p.map(func=worker, iterable=all_params)
 
     ens = StatEnsemble()
-    for res in results:
-        ens.append(res)
+    for result in results:
+        if result is None:
+            continue
+        ens.append(result)
     stats_summary = ens.fetch_all()
     stats_summary.to_csv(os.path.join(paths['wdir'], 'statistics.csv'), index=False)
 
