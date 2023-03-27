@@ -52,7 +52,7 @@
 
     <HistorySet name="input">
       <Input>scaling,YEAR</Input>
-      <Output>TOTALLOAD,PRICE,WIND,HOUR</Output>
+      <Output>TOTALLOAD,PRICE,WIND,SOLAR,HOUR</Output>
       <options>
         <pivotParameter>HOUR</pivotParameter>
       </options>
@@ -60,9 +60,9 @@
 
     <DataSet name="synth">
       <Input>scaling</Input>
-      <Output>TOTALLOAD,PRICE,WIND</Output>
-      <Index var="YEAR">TOTALLOAD,PRICE,WIND</Index>
-      <Index var="HOUR">TOTALLOAD,PRICE,WIND</Index>
+      <Output>TOTALLOAD,PRICE,WIND,SOLAR</Output>
+      <Index var="YEAR">TOTALLOAD,PRICE,WIND,SOLAR</Index>
+      <Index var="HOUR">TOTALLOAD,PRICE,WIND,SOLAR</Index>
     </DataSet>
     <DataSet name="meta"/>
   </DataObjects>
@@ -71,14 +71,15 @@
     <ROM name="arma" subType="ARMA">
       <pivotParameter>HOUR</pivotParameter>
       <Features>scaling</Features>
-      <Target>TOTALLOAD,PRICE,WIND,HOUR</Target>
+      <Target>TOTALLOAD,PRICE,WIND,SOLAR,HOUR</Target>
       <P>1</P>
       <Q>0</Q>
       <Fourier>8760, 24, 12, 6</Fourier>
       <SpecificFourier variables='TOTALLOAD,WIND'>
         <periods>8760, 4380, 384, 168, 84, 24, 12, 6, 3</periods>
       </SpecificFourier>
-      <outTruncation domain='positive'>WIND</outTruncation>
+      <ZeroFilter>SOLAR</ZeroFilter>
+      <outTruncation domain='positive'>SOLAR</outTruncation>
       <preserveInputCDF>True</preserveInputCDF>
       <reseedCopies>True</reseedCopies>
       <seed>42</seed>

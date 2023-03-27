@@ -79,7 +79,7 @@
         <periods>8760, 4380, 384, 168, 84, 24, 12, 6, 3</periods>
       </SpecificFourier>
       <ZeroFilter>SOLAR</ZeroFilter>
-      <outTruncation domain='positive'>SOLAR</outTruncation>
+      <outTruncation domain='positive'>SOLAR,WIND</outTruncation>
       <preserveInputCDF>True</preserveInputCDF>
       <reseedCopies>True</reseedCopies>
       <seed>42</seed>
