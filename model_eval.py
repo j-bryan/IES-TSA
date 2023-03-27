@@ -181,7 +181,7 @@ class StatEnsemble:
 
 def evaluate_model(paths, params):
     df_sh = pd.read_csv(os.path.join(paths['results'], 'synth.csv'))  # load synthetic histories
-    df_hist = pd.read_csv(os.path.join(paths['data'], 'Data_0.csv'))
+    df_hist = pd.read_csv(os.path.join(os.path.split(paths['data'])[0], 'Data_0.csv'))
     
     sh_cols = list(df_sh.columns)
     cols_to_drop = []
