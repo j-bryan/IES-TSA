@@ -28,28 +28,23 @@ def write_train_xml(model_params, paths):
             node.text = val
         else:
             node.set(attr, val)
+    
+    input_data = root.find('.//Input[@name="input"]')
+    input_data.text = paths['data']
 
-    # Write RAVEN training file
-    # working_dir = find_node(root, 'WorkingDir').text
-    # filepath = os.path.join(working_dir, 'train.xml')
     filepath = os.path.join(paths['results'], 'train.xml')
     tree.write(filepath)
-    # print('Working DIR:', working_dir)
 
     return filepath
 
 
 def find_node(root, node):
-        for child in root.iter():
-            if child.tag == node:
-                return child
+    for child in root.iter():
+        if child.tag == node:
+            return child
 
 
 def fit_arma_rom(filepath):
-    # subprocess.run('{} {}'.format(RAVEN_PATH, filepath), shell=True)
-    # output = subprocess.run('bash.exe {} {}'.format(RAVEN_PATH, filepath), shell=True, capture_output=True)
-    # if output.returncode != 0:  # something didn't work right, so we'll manually throw an error
-    #     logging.error(output.stderr)
-    #     raise ValueError
-    sys.argv.append(filepath)
+    # sys.argv.append(filepath)
+    sys.argv = [sys.argv[0], filepath]
     main(False)
